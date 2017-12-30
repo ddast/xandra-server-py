@@ -43,7 +43,14 @@ def run():
     else:
         logging.basicConfig(format='%(levelname)s:%(message)s')
 
-    srv = server.Server(PORT, socket.AF_UNSPEC)
+    if getattr(args, '4'):
+        af = socket.AF_INET
+    elif getattr(args, '6'):
+        af = socket.AF_INET6
+    else:
+        af = socket.AF_UNSPEC
+
+    srv = server.Server(PORT, af)
     srv.start()
 
 if __name__ == '__main__':

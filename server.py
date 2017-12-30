@@ -18,10 +18,32 @@ import logging
 
 import protocol
 
+import sys
+
+def _supports_dual_stack():
+    try:
+        testsock = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
+        testsock.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_V6ONLY, False)
+        return True
+    except AttributeError:
+        return False
+    except OSError:
+        return False
+    finally:
+        try:
+            testsock.close()
+        except OSError:
+            pass
+
 class Server:
-    def __init__(self, port, ipversion):
+    def __init__(self, port, af):
         self._port = port
-        self._ipversion = ipversion
+        if af == socket.AF_UNSPEC and _supports_dual_stack():
+            self._use_dual_stack = True
+            self._af = socket.AF_INET6
+        else:
+            self._use_dual_stack = False
+            self._af = af
         self._s = None
         self._conn = None
 
@@ -32,27 +54,29 @@ class Server:
             self._accept_and_receive()
 
     def _print_welcome(self):
-        print('Starting server on ' + socket.gethostname() + ' (' +
-              socket.gethostbyname(socket.gethostname()) + ')')
+        print('Starting server on \'' + socket.gethostname() + '\'')
 
     def _init_socket(self):
-        for res in socket.getaddrinfo(None, self._port, self._ipversion,
+        for res in socket.getaddrinfo(None, self._port, self._af,
                                       socket.SOCK_STREAM, 0,
                                       socket.AI_PASSIVE):
+            logging.debug("Using socket {}".format(res))
             af, socktype, proto, canonname, sa = res
             try:
                 self._s = socket.socket(af, socktype, proto)
                 self._s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-                # TODO: set SO_RCVTIMEO to 3s
+                if self._use_dual_stack:
+                    self._s.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_V6ONLY,
+                            False)
             except OSError as err:
-                logging.debug('OSError: {}'.format(err))
+                logging.debug('OSError (create socket): {}'.format(err))
                 self._s = None
                 continue
             try:
                 self._s.bind(sa)
                 self._s.listen(1)
             except OSError as err:
-                logging.debug('OSError: {}'.format(err))
+                logging.debug('OSError (bind, listen): {}'.format(err))
                 self.stop()
                 continue
             break
@@ -61,12 +85,17 @@ class Server:
 
     def _accept_and_receive(self):
         self._conn, addr = self._s.accept()
+        self._conn.settimeout(3.0)
+        print('Connected to {}'.format(addr))
         proto = protocol.Protocol()
+        borrow = None
         with self._conn:
-            print('Connected to {}'.format(addr))
-            borrow = None
             while True:
-                data = self._conn.recv(128)
+                try:
+                    data = self._conn.recv(128)
+                except socket.timeout:
+                    logging.debug('Recv timed out. Closing connection.')
+                    break
                 if not data: break
                 if borrow is not None:
                     data = borrow + data
@@ -76,10 +105,11 @@ class Server:
                     borrow = data[processed:]
                 else:
                     borrow = None
+        print('Connection closed.')
 
     def stop(self):
         try:
             self._s.close()
         except OSError as err:
-            logging.debug('OSError: {}'.format(err))
+            logging.debug('OSError (closing): {}'.format(err))
         self._s = None
