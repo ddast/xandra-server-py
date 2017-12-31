@@ -103,8 +103,9 @@ class Server:
                     break
                 if not data: break
                 if borrow is not None:
+                    logging.debug('Transferring {} bytes to next buffer'
+                            .format(len(borrow)))
                     data = borrow + data
-                #print(data)
                 processed = proto.process_data(data)
                 if processed < len(data):
                     borrow = data[processed:]

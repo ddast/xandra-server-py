@@ -86,9 +86,9 @@ class Protocol:
         processed, current = self._utf8_to_unicode(data)
         if current is None:
             if processed == 1:
-                logging.debug('Malformed input.  Buffer {}'.format(data)) 
-            else:
-                logging.debug('Transfering {} bytes'.format(processed))
+                logging.debug('Malformed input.  Buffer {}'.format(data))
+            elif processed is None:
+                logging.debug('Incomplete buffer')
         elif processed <= 4:
             self._process_unicode_character(current)
         elif processed == 5:
@@ -176,7 +176,7 @@ class Protocol:
         for i in range(2,7):
             if c[0] & ((0xff>>(i+1))^0xff) == (0xff>>i)^0xff:
                 if i > len(c):
-                    return i, None
+                    return None, None
                 res = (c[0] & 0xff>>(i+1))<<(6*(i-1))
                 for j in range(1, i):
                     if (c[j] & 0xc0) != 0x80:
