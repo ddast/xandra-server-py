@@ -26,8 +26,8 @@ def run():
     parser = argparse.ArgumentParser(
             prog = 'xandra',
             description = 'Start xandra server',
-            epilog = '''For more information about xandra, see
-                        https://github.com/ddast/xandra-server.''')
+            epilog = ('For more information about xandra, see '
+                      'https://github.com/ddast/xandra-server.'))
     parser.add_argument('--port', type=int, default=64296,
                         help='use this port')
     group = parser.add_mutually_exclusive_group()
@@ -39,7 +39,7 @@ def run():
 
     if args.v:
         logging.basicConfig(format='%(levelname)s:%(message)s',
-                level=logging.DEBUG)
+                            level=logging.DEBUG)
     else:
         logging.basicConfig(format='%(levelname)s:%(message)s')
 
