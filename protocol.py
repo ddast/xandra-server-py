@@ -89,12 +89,22 @@ class Protocol:
                 logging.debug('Malformed input.  Buffer {}'.format(data))
             elif processed is None:
                 logging.debug('Incomplete buffer')
+            else:
+                logging.error(('_process_next(): Unexpected value of '
+                              '(processed, current)=({},{})')
+                              .format(processed, current))
+                processed = 1
         elif processed <= 4:
             self._process_unicode_character(current)
         elif processed == 5:
             self._process_mouse_move(current)
         elif processed == 6:
             self._process_special_key(current)
+        else:
+            logging.error(('_process_next(): Unexpected value of '
+                          '(processed, current)=({},{})')
+                          .format(processed, current))
+            processed = 1
         return processed
 
     def _process_unicode_character(self, character):
