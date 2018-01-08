@@ -18,8 +18,6 @@ import logging
 
 import protocol
 
-import sys
-
 def _supports_dual_stack():
     try:
         testsock = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
