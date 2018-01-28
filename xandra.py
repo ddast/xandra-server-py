@@ -27,7 +27,7 @@ def run():
             prog = 'xandra',
             description = 'Start xandra server',
             epilog = ('For more information about xandra, see '
-                      'https://github.com/ddast/xandra-server.'))
+                      'https://github.com/ddast/xandra-server-py.'))
     parser.add_argument('--port', type=int, default=64296,
                         help='use this port')
     group = parser.add_mutually_exclusive_group()
