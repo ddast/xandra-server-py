@@ -15,6 +15,7 @@
 
 import socket
 import logging
+import signal
 
 import protocol
 
@@ -35,6 +36,7 @@ def _supports_dual_stack():
 
 class Server:
     def __init__(self, port, af):
+        self._is_running = False
         self._port = port
         if af == socket.AF_UNSPEC and _supports_dual_stack():
             self._use_dual_stack = True
@@ -45,12 +47,17 @@ class Server:
 
     def start(self):
         self._print_welcome()
-        while True:
+        signal.signal(signal.SIGINT, self._signal_handler)
+        self._is_running = True
+        while self._is_running:
             with self._init_socket() as sock:
                 self._accept_and_receive(sock)
 
     def _print_welcome(self):
         print('Starting server on "' + socket.gethostname() + '"')
+
+    def _signal_handler(self, signum, frame):
+        self._is_running = False
 
     def _init_socket(self):
         for res in socket.getaddrinfo(None, self._port, self._af,
@@ -93,7 +100,7 @@ class Server:
         proto = protocol.Protocol()
         borrow = None
         with conn:
-            while True:
+            while self._is_running:
                 try:
                     data = conn.recv(128)
                 except socket.timeout:
